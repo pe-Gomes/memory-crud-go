@@ -2,7 +2,7 @@ package infra
 
 import (
 	"errors"
-	"fmt"
+	"sync"
 
 	"github.com/google/uuid"
 )
@@ -34,14 +34,17 @@ func NewAppDB() *AppDB {
 	}
 }
 
-func (db *AppDB) CreateUser(user User) ID {
+func (db *AppDB) CreateUser(m *sync.Mutex, user User) ID {
+	m.Lock()
+	defer m.Unlock()
 	id := ID(uuid.New())
-	fmt.Println(id.String())
 	db.data[id] = user
 	return id
 }
 
-func (db *AppDB) GetUser(id ID) (UserOut, error) {
+func (db *AppDB) GetUser(m *sync.Mutex, id ID) (UserOut, error) {
+	m.Lock()
+	defer m.Unlock()
 	user, ok := db.data[id]
 	if !ok {
 		return UserOut{}, errors.New("could not find user")
@@ -53,10 +56,11 @@ func (db *AppDB) GetUser(id ID) (UserOut, error) {
 	}, nil
 }
 
-func (db *AppDB) ListUsers() []UserOut {
+func (db *AppDB) ListUsers(m *sync.Mutex) []UserOut {
+	m.Lock()
+	defer m.Unlock()
 	users := make([]UserOut, 0, len(db.data))
 	for id := range db.data {
-		fmt.Println(id.String())
 		user := db.data[id]
 		users = append(users, UserOut{
 			ID:   id,
@@ -66,7 +70,9 @@ func (db *AppDB) ListUsers() []UserOut {
 	return users
 }
 
-func (db *AppDB) UpdateUser(id ID, user User) error {
+func (db *AppDB) UpdateUser(m *sync.Mutex, id ID, user User) error {
+	m.Lock()
+	defer m.Unlock()
 	if _, ok := db.data[id]; !ok {
 		return errors.New("could not find user")
 	}
@@ -75,7 +81,9 @@ func (db *AppDB) UpdateUser(id ID, user User) error {
 	return nil
 }
 
-func (db *AppDB) DeleteUser(id ID) error {
+func (db *AppDB) DeleteUser(m *sync.Mutex, id ID) error {
+	m.Lock()
+	defer m.Unlock()
 	if _, ok := db.data[id]; !ok {
 		return errors.New("could not find user")
 	}

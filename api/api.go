@@ -76,7 +76,7 @@ type UserResponse struct {
 }
 
 func (h apiHandler) handleListUsers(w http.ResponseWriter, r *http.Request) {
-	users := h.db.ListUsers()
+	users := h.db.ListUsers(h.mutex)
 
 	res := make([]UserResponse, 0, len(users))
 
@@ -115,13 +115,12 @@ func (h apiHandler) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID := h.db.CreateUser(infra.User{
+	userID := h.db.CreateUser(h.mutex, infra.User{
 		FirstName: body.FirstName,
 		LastName:  body.LastName,
 		Biography: body.Biography,
 	})
 
-	fmt.Println(*h.db)
 	handleJSON(w, Response{Data: CreateUserResponse{ID: userID.String()}}, http.StatusCreated)
 	return
 }
@@ -134,7 +133,7 @@ func (h apiHandler) handleGetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.db.GetUser(infra.ID(userID))
+	user, err := h.db.GetUser(h.mutex, infra.ID(userID))
 	if err != nil {
 		handleJSON(w, Response{Message: "could not find user"}, http.StatusNotFound)
 		return
@@ -158,7 +157,7 @@ func (h apiHandler) handleDeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.db.DeleteUser(infra.ID(userID))
+	err = h.db.DeleteUser(h.mutex, infra.ID(userID))
 	if err != nil {
 		handleJSON(w, Response{Message: "could not delete user"}, http.StatusInternalServerError)
 		return
@@ -193,7 +192,7 @@ func (h apiHandler) handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.db.UpdateUser(infra.ID(userID), infra.User{
+	err = h.db.UpdateUser(h.mutex, infra.ID(userID), infra.User{
 		FirstName: body.FirstName,
 		LastName:  body.LastName,
 		Biography: body.Biography,
